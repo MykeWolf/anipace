@@ -241,7 +241,7 @@ export default function AnimeSearch({ onSelect, onClear }: Props) {
             spellCheck={false}
             aria-label="Search for an anime"
             aria-haspopup="listbox"
-            aria-expanded={isOpen}
+            aria-controls="anime-search-listbox"
             className="
               w-full rounded-[12px] bg-surface-elevated
               px-4 py-[0.875rem] pr-11

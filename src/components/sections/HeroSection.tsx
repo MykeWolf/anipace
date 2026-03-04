@@ -57,7 +57,7 @@ export default function HeroSection() {
       {/* ── Main content: headline + subline + CTA ───────────────────────── */}
       <div className="relative z-10 px-6 pb-16 text-center">
         <h1 className="text-[2.125rem] leading-[1.18] font-bold tracking-tight text-white mb-5">
-          Stop saying you'll watch it.{" "}
+          Stop saying you&apos;ll watch it.{" "}
           <span className="text-accent">Actually&nbsp;finish&nbsp;it.</span>
         </h1>
 
