@@ -51,6 +51,17 @@ export default function HeroSection() {
         <span className="text-[0.6875rem] font-bold tracking-[0.28em] uppercase text-accent/90 select-none">
           AniPace
         </span>
+        <p className="text-[0.6875rem] text-foreground-muted/50 mt-1 tracking-wide">
+          by{" "}
+          <a
+            href="https://www.instagram.com/themichaelleonard/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-foreground-muted transition-colors"
+          >
+            @themichaelleonard
+          </a>
+        </p>
       </div>
 
       {/* ── Spacer: pushes content to bottom ─────────────────────────────── */}

@@ -9,7 +9,7 @@ export default function SiteFooter() {
     <footer className="px-6 pt-8 pb-12 border-t border-border">
       <div className="flex flex-col gap-3 text-[0.8125rem] text-foreground-muted">
         <a
-          href="https://instagram.com"
+          href="https://www.instagram.com/themichaelleonard/"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors w-fit"

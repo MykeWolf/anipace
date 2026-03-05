@@ -36,6 +36,17 @@ export default function FounderStory() {
           binging, just a realistic schedule so you can stop saying &ldquo;I&apos;ll
           get to it&rdquo; and actually get to it.
         </p>
+
+        <p className="text-[0.875rem]">
+          <a
+            href="https://www.instagram.com/themichaelleonard/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent hover:opacity-80 transition-opacity"
+          >
+            Follow along on Instagram →
+          </a>
+        </p>
       </div>
     </section>
   );
