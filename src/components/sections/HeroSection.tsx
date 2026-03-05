@@ -48,7 +48,7 @@ export default function HeroSection() {
 
       {/* ── AniPace wordmark (top of hero) ───────────────────────────────── */}
       <div className="relative z-10 pt-10 px-6 text-center">
-        <span className="text-[0.6875rem] font-bold tracking-[0.28em] uppercase text-accent/90 select-none">
+        <span className="text-[0.875rem] font-bold tracking-[0.22em] uppercase text-accent/90 select-none">
           AniPace
         </span>
         <p className="text-[0.6875rem] text-foreground-muted/50 mt-1 tracking-wide">
@@ -74,7 +74,7 @@ export default function HeroSection() {
           <span className="text-accent">Actually&nbsp;finish&nbsp;it.</span>
         </h1>
 
-        <p className="text-[0.9375rem] leading-relaxed text-foreground-muted mb-10 max-w-[300px] mx-auto">
+        <p className="text-[0.9375rem] leading-relaxed text-foreground-muted mb-14 max-w-[300px] mx-auto">
           Tell us the anime, tell us your schedule, and we&apos;ll build a watching
           plan that fits your real life. No more staring at 500 episodes wondering
           where to start.
@@ -87,6 +87,7 @@ export default function HeroSection() {
             rounded-[999px] bg-accent text-[#0f0f0f]
             font-semibold text-[0.9375rem] py-[0.9375rem]
             transition-opacity hover:opacity-90 active:opacity-75
+            shadow-[0_0_28px_rgba(138,180,248,0.38)]
           "
         >
           Plan Your Watch
