@@ -2,6 +2,36 @@ import { NextRequest, NextResponse } from "next/server";
 import type { AnimeDetailApiResponse, ApiError } from "@/types";
 
 const JIKAN_BASE = "https://api.jikan.moe/v4";
+const JIKAN_TIMEOUT_MS = 8_000;
+
+/**
+ * Fetch with 8s timeout + 1 automatic retry on 5xx transient errors.
+ * Handles the most common Jikan failure modes silently:
+ *   - 503 Service Unavailable (maintenance) → retry after 1s
+ *   - 500 Server Error (transient) → retry after 1s
+ *   - Timeout / network error → retry after 1s
+ */
+async function jikanFetch(url: string, options: RequestInit): Promise<Response> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), JIKAN_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timer);
+      // Retry once on 5xx (transient outage). Never retry 429 or 4xx.
+      if (res.status >= 500 && attempt === 0) {
+        await new Promise((r) => setTimeout(r, 1_000));
+        continue;
+      }
+      return res;
+    } catch (err) {
+      clearTimeout(timer);
+      if (attempt === 1) throw err; // re-throw on second failure
+      await new Promise((r) => setTimeout(r, 1_000));
+    }
+  }
+  throw new Error("Jikan fetch failed after retries");
+}
 
 /** Parse episode duration string like "24 min per ep" → 24 */
 function parseDurationMinutes(duration: string | null): number {
@@ -24,7 +54,7 @@ export async function GET(
   }
 
   try {
-    const res = await fetch(`${JIKAN_BASE}/anime/${malId}`, {
+    const res = await jikanFetch(`${JIKAN_BASE}/anime/${malId}`, {
       next: { revalidate: 300 }, // cache for 5 minutes
     });
 
@@ -38,7 +68,16 @@ export async function GET(
           { status: 429 }
         );
       }
-      throw new Error(`Jikan API error: ${res.status}`);
+      if (res.status >= 500) {
+        return NextResponse.json<ApiError>(
+          { error: "The anime database is temporarily unavailable — please try again shortly." },
+          { status: 503 }
+        );
+      }
+      return NextResponse.json<ApiError>(
+        { error: "Couldn't load anime details — please try again." },
+        { status: res.status }
+      );
     }
 
     const { data } = await res.json();
@@ -58,8 +97,8 @@ export async function GET(
   } catch (err) {
     console.error("[/api/anime/[malId]]", err);
     return NextResponse.json<ApiError>(
-      { error: "Failed to fetch anime details." },
-      { status: 500 }
+      { error: "The anime database is temporarily unavailable — please try again shortly." },
+      { status: 503 }
     );
   }
 }
