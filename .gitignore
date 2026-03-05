@@ -39,3 +39,5 @@ yarn-error.log*
 
 # Windows reserved device name — Turbopack artifact, never a real file
 nul
+
+.vercel
