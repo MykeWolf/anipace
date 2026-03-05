@@ -135,6 +135,7 @@ export default function AnimeSearch({ onSelect, onClear }: Props) {
         }
         const data = await res.json();
         const hits: JikanAnimeSearchResult[] = data.results ?? [];
+        setSearchError(null); // clear any error from an earlier in-flight request
         setResults(hits);
         setIsOpen(hits.length > 0);
       } catch {
