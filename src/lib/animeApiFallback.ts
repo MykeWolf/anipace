@@ -75,10 +75,15 @@ async function anilistFetch(
       signal: controller.signal,
     });
     clearTimeout(timer);
-    if (!res.ok) throw new Error(`AniList HTTP ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error(`[AniList] HTTP ${res.status}`, body.slice(0, 200));
+      throw new Error(`AniList HTTP ${res.status}`);
+    }
     return res.json();
   } catch (err) {
     clearTimeout(timer);
+    console.error("[AniList] fetch error:", err);
     throw err;
   }
 }
