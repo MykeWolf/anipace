@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { SearchApiResponse, ApiError } from "@/types";
+import { searchAniList } from "@/lib/animeApiFallback";
 
 const JIKAN_BASE = "https://api.jikan.moe/v4";
 const JIKAN_TIMEOUT_MS = 8_000;
@@ -61,10 +62,16 @@ export async function GET(request: NextRequest) {
         );
       }
       if (res.status >= 500) {
-        return NextResponse.json<ApiError>(
-          { error: "The anime database is temporarily unavailable — please try again shortly." },
-          { status: 503 }
-        );
+        // Jikan is down — try AniList as fallback
+        try {
+          const fallbackResults = await searchAniList(query);
+          return NextResponse.json<SearchApiResponse>({ results: fallbackResults });
+        } catch {
+          return NextResponse.json<ApiError>(
+            { error: "The anime database is temporarily unavailable — please try again shortly." },
+            { status: 503 }
+          );
+        }
       }
       return NextResponse.json<ApiError>(
         { error: "Couldn't reach the anime database — please try again." },
@@ -80,10 +87,16 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (err) {
-    console.error("[/api/search]", err);
-    return NextResponse.json<ApiError>(
-      { error: "The anime database is temporarily unavailable — please try again shortly." },
-      { status: 503 }
-    );
+    // Network error / timeout — try AniList as fallback
+    try {
+      const fallbackResults = await searchAniList(query);
+      return NextResponse.json<SearchApiResponse>({ results: fallbackResults });
+    } catch {
+      console.error("[/api/search] Both Jikan and AniList failed", err);
+      return NextResponse.json<ApiError>(
+        { error: "The anime database is temporarily unavailable — please try again shortly." },
+        { status: 503 }
+      );
+    }
   }
 }
