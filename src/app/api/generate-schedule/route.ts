@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
   const { animeTitle, totalEpisodes, episodeDuration, startDate, targetDate, mode, ai } =
     body;
 
-  if (!animeTitle || !totalEpisodes || !startDate || !targetDate || !mode) {
+  if (!animeTitle || !totalEpisodes || !startDate || !mode) {
     return NextResponse.json<ApiError>(
       { error: "Missing required fields." },
       { status: 400 }
@@ -274,23 +274,33 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Build prompt ───────────────────────────────────────────────────────
-  const start = parseISODate(startDate);
-  const target = parseISODate(targetDate);
-  const daysAvailable = Math.max(
-    1,
-    Math.round((target.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-  );
-  const weeksAvailable = Math.max(1, daysAvailable / 7);
-  const weeklyTarget = (totalEpisodes / weeksAvailable).toFixed(1);
   const epDuration = episodeDuration ?? 24;
   // ~2.5 hours max per day
   const maxEpsPerDay = Math.min(10, Math.max(1, Math.ceil(150 / epDuration)));
 
+  // Build the deadline/pace context depending on whether a target date was provided
+  let deadlineContext: string;
+  let paceRule: string;
+  if (targetDate) {
+    const start = parseISODate(startDate);
+    const target = parseISODate(targetDate);
+    const daysAvailable = Math.max(
+      1,
+      Math.round((target.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+    );
+    const weeksAvailable = Math.max(1, daysAvailable / 7);
+    const weeklyTarget = (totalEpisodes / weeksAvailable).toFixed(1);
+    deadlineContext = `Watching window: ${startDate} to ${targetDate} (${daysAvailable} days available).\nTo finish on time they need approximately ${weeklyTarget} episodes per week.`;
+    paceRule = `- The total per week should be close to ${weeklyTarget} episodes`;
+  } else {
+    deadlineContext = `No specific deadline — focus on a sustainable, enjoyable pace that fits the user's lifestyle.`;
+    paceRule = `- Set a comfortable weekly pace based on the user's free time (don't overload them)`;
+  }
+
   const prompt = `You are a scheduling assistant for an anime watching app.
 
 The user wants to watch "${animeTitle}" — ${totalEpisodes} episodes, ${epDuration} minutes each.
-Watching window: ${startDate} to ${targetDate} (${daysAvailable} days available).
-To finish on time they need approximately ${weeklyTarget} episodes per week.
+${deadlineContext}
 
 The user's weekly schedule: "${ai.userScheduleDescription}"
 
@@ -302,7 +312,7 @@ Rules:
 - Free evenings (~1-2 hrs available) → assign 1-2 episodes
 - Open or free days → assign 2-${maxEpsPerDay} episodes
 - Include at least 2-3 rest days per week (0 episodes) — everyone needs rest
-- The total per week should be close to ${weeklyTarget} episodes
+${paceRule}
 
 Return ONLY this valid JSON object — no markdown fences, no explanation, nothing else:
 {"monday":0,"tuesday":0,"wednesday":0,"thursday":0,"friday":0,"saturday":0,"sunday":0}`;

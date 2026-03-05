@@ -152,8 +152,8 @@ export default function ScheduleDisplay({
 
   const { summary } = plan;
 
-  // Is the projected finish date later than the user's target?
-  const isLate = summary.projectedFinishDate > plan.targetDate;
+  // Is the projected finish date later than the user's target? (only relevant when a target was set)
+  const isLate = !!plan.targetDate && summary.projectedFinishDate > plan.targetDate;
 
   return (
     <div className="w-full mt-2 pb-12">

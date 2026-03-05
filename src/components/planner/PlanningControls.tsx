@@ -99,12 +99,7 @@ export default function PlanningControls({
       return false;
     }
 
-    if (!targetDate) {
-      setError("Set a target finish date first.");
-      return false;
-    }
-
-    if (targetDate <= formatISODate(new Date())) {
+    if (targetDate && targetDate <= formatISODate(new Date())) {
       setError("Choose a future date — the target date must be at least tomorrow.");
       return false;
     }
@@ -255,7 +250,8 @@ export default function PlanningControls({
       {/* ── Target finish date ─────────────────────────────────────────── */}
       <div>
         <label className="block text-[0.8125rem] text-foreground-muted mb-1.5 font-medium">
-          Target finish date
+          Target finish date{" "}
+          <span className="text-foreground-muted/60 font-normal">(optional)</span>
         </label>
         <input
           type="date"
@@ -263,8 +259,13 @@ export default function PlanningControls({
           min={minDate}
           onChange={(e) => setTargetDate(e.target.value)}
           className={inputCls}
-          aria-label="Target finish date"
+          aria-label="Target finish date (optional)"
         />
+        {!targetDate && (
+          <p className="text-[0.75rem] text-foreground-muted/60 mt-1.5">
+            Leave blank and we&apos;ll tell you when you&apos;ll finish at your pace.
+          </p>
+        )}
       </div>
 
       {/* ── Simple Mode inputs ─────────────────────────────────────────── */}

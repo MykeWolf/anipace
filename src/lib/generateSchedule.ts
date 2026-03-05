@@ -79,8 +79,8 @@ export interface SimpleScheduleParams {
   episodeDurationMinutes: number;
   /** ISO date string for the day watching starts (typically today). */
   startDate: string;
-  /** ISO date string for the user's desired finish date. */
-  targetDate: string;
+  /** ISO date string for the user's desired finish date. Optional — if omitted the schedule runs to completion and no target is stored. */
+  targetDate?: string;
   /** Episodes to watch on Mon–Fri. 0 = rest days. */
   weekdayEps: number;
   /** Episodes to watch on Sat–Sun. 0 = rest days. */

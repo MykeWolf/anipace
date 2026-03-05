@@ -58,7 +58,7 @@ export interface SavedPlan {
   totalEpisodes: number;
   episodeDuration: number; // minutes per episode
   startDate: string; // ISO date string
-  targetDate: string; // ISO date string
+  targetDate?: string; // ISO date string — optional (user may not have a deadline)
   createdAt: string; // ISO datetime string
   weeks: ScheduleWeek[];
   summary: ScheduleSummary;
@@ -82,7 +82,7 @@ export interface GenerateScheduleRequest {
   totalEpisodes: number;
   episodeDuration: number;
   startDate: string;
-  targetDate: string;
+  targetDate?: string;
   mode: SchedulingMode;
   simple?: SimpleModeInput;
   ai?: AIModeInput;
