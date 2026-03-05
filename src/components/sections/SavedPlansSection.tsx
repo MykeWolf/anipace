@@ -230,8 +230,8 @@ export default function SavedPlansSection() {
               Generate a schedule above and save it — it&apos;ll show up here.
             </p>
           </div>
-          <a
-            href="#planner"
+          <button
+            onClick={() => document.getElementById("planner")?.scrollIntoView({ behavior: "smooth" })}
             className="
               rounded-full border border-border
               px-6 py-3
@@ -241,7 +241,7 @@ export default function SavedPlansSection() {
             "
           >
             Plan Your Watch
-          </a>
+          </button>
         </div>
       ) : (
         // ── Plan cards ───────────────────────────────────────────────────────

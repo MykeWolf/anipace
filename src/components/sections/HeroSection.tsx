@@ -7,6 +7,8 @@
  * sitting within the gradient-fade zone so text lifts naturally off the background.
  */
 
+import SmoothScrollButton from "@/components/ui/SmoothScrollButton";
+
 export default function HeroSection() {
   return (
     <section
@@ -67,8 +69,8 @@ export default function HeroSection() {
           where to start.
         </p>
 
-        <a
-          href="#planner"
+        <SmoothScrollButton
+          targetId="planner"
           className="
             inline-flex items-center justify-center w-full
             rounded-[999px] bg-accent text-[#0f0f0f]
@@ -77,7 +79,7 @@ export default function HeroSection() {
           "
         >
           Plan Your Watch
-        </a>
+        </SmoothScrollButton>
       </div>
     </section>
   );
