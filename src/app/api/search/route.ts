@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
   try {
     const res = await jikanFetch(
       `${JIKAN_BASE}/anime?q=${encodeURIComponent(query)}&limit=10&sfw=true`,
-      { next: { revalidate: 60 } } // cache results for 60s
+      { next: { revalidate: 600 } } // cache results for 10 minutes
     );
 
     if (!res.ok) {

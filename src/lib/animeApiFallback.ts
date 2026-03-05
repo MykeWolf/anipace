@@ -10,6 +10,7 @@
  * GraphQL endpoint: https://graphql.anilist.co
  */
 
+import { unstable_cache } from "next/cache";
 import type { JikanAnimeSearchResult, AnimeDetailApiResponse } from "@/types";
 
 const ANILIST_URL = "https://graphql.anilist.co";
@@ -75,15 +76,10 @@ async function anilistFetch(
       signal: controller.signal,
     });
     clearTimeout(timer);
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      console.error(`[AniList] HTTP ${res.status}`, body.slice(0, 200));
-      throw new Error(`AniList HTTP ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`AniList HTTP ${res.status}`);
     return res.json();
   } catch (err) {
     clearTimeout(timer);
-    console.error("[AniList] fetch error:", err);
     throw err;
   }
 }
@@ -108,57 +104,62 @@ function resolveStatus(raw: string): string {
  * Search AniList and return results normalized to JikanAnimeSearchResult[].
  * Entries without a MAL ID are filtered out so the rest of the app can always
  * rely on mal_id being a valid positive integer.
+ *
+ * Results are cached for 10 minutes via Next.js Data Cache (matches the
+ * Jikan search revalidation window) to reduce AniList hits during outages.
  */
-export async function searchAniList(
-  searchQuery: string
-): Promise<JikanAnimeSearchResult[]> {
-  const GQL = `
-    query ($search: String) {
-      Page(perPage: 10) {
-        media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
-          idMal
-          title { romaji english }
-          episodes
-          duration
-          status
-          coverImage { extraLarge large }
+export const searchAniList = unstable_cache(
+  async (searchQuery: string): Promise<JikanAnimeSearchResult[]> => {
+    const GQL = `
+      query ($search: String) {
+        Page(perPage: 10) {
+          media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
+            idMal
+            title { romaji english }
+            episodes
+            duration
+            status
+            coverImage { extraLarge large }
+          }
         }
       }
-    }
-  `;
+    `;
 
-  const json = (await anilistFetch(GQL, { search: searchQuery })) as {
-    data: { Page: { media: AniListSearchMedia[] } };
-  };
+    const json = (await anilistFetch(GQL, { search: searchQuery })) as {
+      data: { Page: { media: AniListSearchMedia[] } };
+    };
 
-  const items: AniListSearchMedia[] = json.data?.Page?.media ?? [];
+    const items: AniListSearchMedia[] = json.data?.Page?.media ?? [];
 
-  return items
-    .filter((m): m is AniListSearchMedia & { idMal: number } => m.idMal != null)
-    .map((m) => {
-      const imageUrl = m.coverImage.large ?? "";
-      const largeImageUrl = m.coverImage.extraLarge ?? m.coverImage.large ?? "";
+    return items
+      .filter((m): m is AniListSearchMedia & { idMal: number } => m.idMal != null)
+      .map((m) => {
+        const imageUrl = m.coverImage.large ?? "";
+        const largeImageUrl = m.coverImage.extraLarge ?? m.coverImage.large ?? "";
 
-      const image = {
-        image_url: imageUrl,
-        small_image_url: imageUrl,
-        large_image_url: largeImageUrl,
-      };
+        const image = {
+          image_url: imageUrl,
+          small_image_url: imageUrl,
+          large_image_url: largeImageUrl,
+        };
 
-      return {
-        mal_id: m.idMal,
-        title: m.title.romaji ?? m.title.english ?? "Unknown",
-        title_english: m.title.english ?? null,
-        episodes: m.episodes ?? null,
-        status: resolveStatus(m.status) as JikanAnimeSearchResult["status"],
-        images: { jpg: image, webp: image },
-        synopsis: null, // omitted from search for speed
-        duration: m.duration != null ? `${m.duration} min per ep` : null,
-        score: null,
-        year: null,
-      };
-    });
-}
+        return {
+          mal_id: m.idMal,
+          title: m.title.romaji ?? m.title.english ?? "Unknown",
+          title_english: m.title.english ?? null,
+          episodes: m.episodes ?? null,
+          status: resolveStatus(m.status) as JikanAnimeSearchResult["status"],
+          images: { jpg: image, webp: image },
+          synopsis: null, // omitted from search for speed
+          duration: m.duration != null ? `${m.duration} min per ep` : null,
+          score: null,
+          year: null,
+        };
+      });
+  },
+  ["anilist-search"], // cache key prefix — query string is appended automatically
+  { revalidate: 600 } // 10-minute TTL, matching Jikan search cache
+);
 
 /**
  * Fetch anime detail from AniList by MAL ID.
