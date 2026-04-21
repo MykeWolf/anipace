@@ -317,17 +317,73 @@ ${paceRule}
 Return ONLY this valid JSON object — no markdown fences, no explanation, nothing else:
 {"monday":0,"tuesday":0,"wednesday":0,"thursday":0,"friday":0,"saturday":0,"sunday":0}`;
 
-  // ── Call Gemini ────────────────────────────────────────────────────────
+  // ── Call Gemini (with model fallback chain) ────────────────────────────
+  //
+  // gemini-2.5-flash is the preferred model but it can return 503 when under
+  // heavy load. We try each model in order and fall through on 503 / UNAVAILABLE.
+  // Quota (429) and auth (401/403) errors are NOT retried — they're terminal.
+
+  const MODEL_CHAIN = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-8b",
+  ] as const;
+
+  /**
+   * Returns true if the error looks like a transient overload that is worth
+   * retrying with a different model.
+   */
+  function isRetryable(err: unknown): boolean {
+    const msg = err instanceof Error ? err.message : String(err);
+    return (
+      msg.includes("503") ||
+      msg.toLowerCase().includes("unavailable") ||
+      msg.toLowerCase().includes("high demand") ||
+      msg.toLowerCase().includes("overloaded")
+    );
+  }
+
   try {
     const genAI = new GoogleGenAI({ apiKey });
-    const response = await genAI.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        temperature: 0.4,
-      },
-    });
+
+    let response: Awaited<ReturnType<typeof genAI.models.generateContent>> | null = null;
+    let lastError: unknown = null;
+
+    for (const model of MODEL_CHAIN) {
+      try {
+        console.log(`[AniPace] Trying model: ${model}`);
+        response = await genAI.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            temperature: 0.4,
+          },
+        });
+        console.log(`[AniPace] Success with model: ${model}`);
+        break; // got a response — stop trying
+      } catch (err) {
+        if (isRetryable(err)) {
+          console.warn(`[AniPace] Model ${model} unavailable, trying next…`);
+          lastError = err;
+          continue; // try the next model
+        }
+        throw err; // non-retryable (quota, auth, etc.) — bubble up immediately
+      }
+    }
+
+    if (!response) {
+      // Every model in the chain was unavailable
+      console.error("[AniPace] All models unavailable:", lastError);
+      return NextResponse.json<ApiError>(
+        {
+          error:
+            "The AI is under heavy load right now. Please try again in a minute, or use Simple Mode.",
+        },
+        { status: 503 }
+      );
+    }
 
     let rawText = response.text ?? "";
 
