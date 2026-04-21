@@ -6,7 +6,7 @@ import ProgressBar from "@/components/planner/ProgressBar";
 import MilestoneBadge from "@/components/planner/MilestoneBadge";
 import { toggleDayComplete } from "@/lib/localStorage";
 import { getNewlyEarnedMilestones, type Milestone } from "@/lib/milestones";
-import PlanDownloadButton from "@/components/pdf/PlanDownloadButton";
+import Image from "next/image";
 import confetti from "canvas-confetti";
 import { formatShortDate, formatFullDate, formatDayDate, formatWeekRange } from "@/lib/dateUtils";
 
@@ -209,6 +209,9 @@ export default function ScheduleDisplay({
   const isLate = !!plan.targetDate && summary.projectedFinishDate > plan.targetDate;
   const earnedBadges = plan.earnedBadges ?? [];
 
+    transition-colors
+  `;
+
   return (
     <>
       {/* ── Milestone badge modal ─────────────────────────────────────────── */}
@@ -238,7 +241,52 @@ export default function ScheduleDisplay({
         </div>
       )}
 
-      <div className="w-full mt-2 pb-12">
+      <div className="w-full pb-12 overflow-hidden shadow-2xl bg-background rounded-b-[32px]">
+        {/* ── 0. Hero Banner ─────────────────────────────────────────────── */}
+        <div className="relative w-full aspect-[21/9] md:aspect-[21/7] overflow-hidden">
+          {/* Ambient blurred background */}
+          <div className="absolute inset-0 scale-110 blur-3xl opacity-50 grayscale-[0.5]">
+            <Image
+              src={plan.coverImage}
+              alt=""
+              fill
+              className="object-cover"
+              aria-hidden
+            />
+          </div>
+          
+          {/* Main image with vertical transition */}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent z-10" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/40 to-transparent z-10" />
+          
+          <div className="relative z-20 h-full flex items-end px-6 pb-8">
+            <div className="flex flex-col gap-2">
+              <h1 className="text-[2rem] md:text-[2.75rem] font-black text-foreground tracking-tight leading-[1.1] drop-shadow-sm max-w-[85%]">
+                {plan.animeTitle}
+              </h1>
+              <div className="flex items-center gap-3">
+                <span className="px-2 py-0.5 rounded bg-foreground/10 text-foreground text-[0.75rem] font-bold uppercase tracking-wider">
+                  {plan.totalEpisodes} Episodes
+                </span>
+                <span className="text-foreground-muted text-[0.875rem] font-medium">
+                  {episodesWatched} of {plan.totalEpisodes} watched
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="absolute inset-0 z-0">
+             <Image
+                src={plan.coverImage}
+                alt={plan.animeTitle}
+                fill
+                className="object-cover opacity-80"
+                priority
+              />
+          </div>
+        </div>
+
+        <div className="w-full mt-6">
         {/* ── Late-finish warning ─────────────────────────────────────────── */}
         {isLate && (
           <div className="mx-6 mb-4 rounded-[12px] bg-amber-500/10 border border-amber-500/25 px-4 py-3">

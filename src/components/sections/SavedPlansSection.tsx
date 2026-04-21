@@ -41,8 +41,7 @@ interface CardProps {
 function PlanCard({ plan, onView, onDelete }: CardProps) {
   return (
     <div
-      className="relative w-full rounded-[16px] overflow-hidden cursor-pointer select-none"
-      style={{ height: 200 }}
+      className="relative w-full aspect-[2/3] rounded-[12px] overflow-hidden cursor-pointer select-none group border border-white/5 shadow-xl"
       onClick={onView}
       role="button"
       tabIndex={0}
@@ -54,8 +53,8 @@ function PlanCard({ plan, onView, onDelete }: CardProps) {
         src={plan.coverImage}
         alt={plan.animeTitle}
         fill
-        sizes="480px"
-        className="object-cover object-top"
+        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+        className="object-cover transition-transform duration-500 group-hover:scale-105"
         priority={false}
       />
 
@@ -82,13 +81,12 @@ function PlanCard({ plan, onView, onDelete }: CardProps) {
       </button>
 
       {/* Title + metadata — bottom-left */}
-      <div className="absolute bottom-0 left-0 right-0 p-4">
-        <p className="text-white font-bold text-[1rem] leading-snug line-clamp-1">
+      <div className="absolute bottom-0 left-0 right-0 p-3 pt-10 bg-gradient-to-t from-black via-black/80 to-transparent">
+        <p className="text-white font-bold text-[0.875rem] leading-tight line-clamp-2">
           {plan.animeTitle}
         </p>
-        <p className="text-white/65 text-[0.8125rem] mt-0.5">
-          {plan.totalEpisodes} eps &nbsp;·&nbsp; Finish{" "}
-          {shortDate(plan.summary.projectedFinishDate)}
+        <p className="text-white/60 text-[0.75rem] mt-1 font-medium">
+          Finish {shortDate(plan.summary.projectedFinishDate)}
         </p>
       </div>
     </div>
@@ -167,32 +165,22 @@ export default function SavedPlansSection() {
         className="w-full border-t border-border"
         aria-label="Saved plan detail"
       >
-        {/* Back breadcrumb */}
-        <div className="px-6 pt-10 pb-1">
+        {/* Back breadcrumb — slightly more minimalist */}
+        <div className="px-6 pt-8 pb-2">
           <button
             onClick={() => setViewing(null)}
             className="
-              flex items-center gap-1.5
-              text-[0.875rem] text-foreground-muted
+              flex items-center gap-1
+              text-[0.8125rem] font-bold text-foreground-muted/60 uppercase tracking-widest
               hover:text-foreground transition-colors
             "
           >
             <BackArrow />
-            Saved Plans
+            Back
           </button>
         </div>
 
-        {/* Plan title */}
-        <div className="px-6 pt-3 pb-2">
-          <h2 className="text-[1.25rem] font-bold text-foreground leading-snug">
-            {viewing.animeTitle}
-          </h2>
-          <p className="text-[0.875rem] text-foreground-muted mt-0.5">
-            {viewing.totalEpisodes} episodes
-          </p>
-        </div>
-
-        {/* Full schedule */}
+        {/* Full schedule (Hero Banner is inside) */}
         <ScheduleDisplay
           plan={viewing}
           isSaved={true}
@@ -252,7 +240,7 @@ export default function SavedPlansSection() {
         </div>
       ) : (
         // ── Plan cards ───────────────────────────────────────────────────────
-        <div className="px-6 pb-14 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="px-6 pb-14 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {plans.map((plan) => (
             <PlanCard
               key={plan.id}
