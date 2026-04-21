@@ -13,11 +13,6 @@ import { formatShortDate, formatFullDate, formatDayDate, formatWeekRange } from 
 
 // ── Date / formatting helpers ─────────────────────────────────────────────────
 
-function parseLocal(iso: string): Date {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
-
 function shortDate(iso: string): string {
   return formatShortDate(iso);
 }

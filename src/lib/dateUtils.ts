@@ -38,8 +38,8 @@ export function formatDayDate(iso: string): string {
 export function formatWeekRange(startIso: string, endIso: string): string {
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   
-  const [sy, sm, sd] = startIso.split("-").map(Number);
-  const [ey, em, ed] = endIso.split("-").map(Number);
+  const [, sm, sd] = startIso.split("-").map(Number);
+  const [, em, ed] = endIso.split("-").map(Number);
   
   const smName = months[sm - 1];
   const emName = months[em - 1];

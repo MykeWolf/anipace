@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const React = require("react");
 
 function Image({ src, alt, fill, sizes, priority, ...props }) {
