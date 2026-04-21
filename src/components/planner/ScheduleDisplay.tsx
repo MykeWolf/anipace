@@ -6,6 +6,7 @@ import ProgressBar from "@/components/planner/ProgressBar";
 import MilestoneBadge from "@/components/planner/MilestoneBadge";
 import { toggleDayComplete } from "@/lib/localStorage";
 import { getNewlyEarnedMilestones, type Milestone } from "@/lib/milestones";
+import PlanDownloadButton from "@/components/pdf/PlanDownloadButton";
 import Image from "next/image";
 import confetti from "canvas-confetti";
 import { formatShortDate, formatFullDate, formatDayDate, formatWeekRange } from "@/lib/dateUtils";
@@ -208,9 +209,6 @@ export default function ScheduleDisplay({
   const { summary } = plan;
   const isLate = !!plan.targetDate && summary.projectedFinishDate > plan.targetDate;
   const earnedBadges = plan.earnedBadges ?? [];
-
-    transition-colors
-  `;
 
   return (
     <>
@@ -485,6 +483,7 @@ export default function ScheduleDisplay({
           </div>
         )}
       </div>
-    </>
-  );
+    </div>
+  </>
+);
 }
