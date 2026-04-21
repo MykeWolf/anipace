@@ -21,16 +21,13 @@ import Image from "next/image";
 import type { SavedPlan } from "@/types";
 import { loadUserPlans, saveUserPlan, deleteUserPlan } from "@/lib/planStorage";
 import ScheduleDisplay from "@/components/planner/ScheduleDisplay";
+import MountedOnly from "@/components/shared/MountedOnly";
+import { formatShortDate } from "@/lib/dateUtils";
 
 // ── Date helper ───────────────────────────────────────────────────────────────
 
 function shortDate(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatShortDate(iso);
 }
 
 // ── Plan Card ─────────────────────────────────────────────────────────────────
@@ -211,11 +208,12 @@ export default function SavedPlansSection() {
   // ── List view ──────────────────────────────────────────────────────────────
 
   return (
-    <section
-      id="saved-plans"
-      className="w-full border-t border-border"
-      aria-label="Saved plans"
-    >
+    <MountedOnly>
+      <section
+        id="saved-plans"
+        className="w-full border-t border-border"
+        aria-label="Saved plans"
+      >
       {/* Header */}
       <div className="px-6 pt-14 pb-7">
         <h2 className="text-[1.125rem] font-bold text-foreground tracking-tight">
@@ -265,6 +263,7 @@ export default function SavedPlansSection() {
           ))}
         </div>
       )}
-    </section>
+      </section>
+    </MountedOnly>
   );
 }

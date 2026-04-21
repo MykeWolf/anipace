@@ -30,6 +30,7 @@ import AnimeDetailBanner from "@/components/search/AnimeDetailBanner";
 import PlanningControls from "@/components/planner/PlanningControls";
 import ScheduleDisplay from "@/components/planner/ScheduleDisplay";
 import { saveUserPlan, deleteUserPlan } from "@/lib/planStorage";
+import MountedOnly from "@/components/shared/MountedOnly";
 
 
 export default function PlannerSection() {
@@ -145,14 +146,16 @@ export default function PlannerSection() {
 
       {/* 4. Schedule display — visible after plan is generated */}
       {generatedPlan && (
-        <ScheduleDisplay
-          plan={generatedPlan}
-          isSaved={isSaved}
-          onSave={handleSave}
-          onDelete={handleDelete}
-          onStartOver={handleStartOver}
-          onProgressChange={handleProgressChange}
-        />
+        <MountedOnly>
+          <ScheduleDisplay
+            plan={generatedPlan}
+            isSaved={isSaved}
+            onSave={handleSave}
+            onDelete={handleDelete}
+            onStartOver={handleStartOver}
+            onProgressChange={handleProgressChange}
+          />
+        </MountedOnly>
       )}
     </section>
   );

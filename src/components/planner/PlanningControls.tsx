@@ -30,6 +30,7 @@ import type {
   ApiError,
 } from "@/types";
 import { generateSimpleSchedule, formatISODate } from "@/lib/generateSchedule";
+import MountedOnly from "@/components/shared/MountedOnly";
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -216,7 +217,8 @@ export default function PlanningControls({
   `;
 
   return (
-    <div className="px-6 pt-7 pb-10 space-y-5 border-t border-border mt-5">
+    <MountedOnly>
+      <div className="px-6 pt-7 pb-10 space-y-5 border-t border-border mt-5">
       {/* ── Mode toggle (segmented control) ───────────────────────────── */}
       <div
         className="flex rounded-full bg-surface p-1 gap-1"
@@ -353,5 +355,6 @@ export default function PlanningControls({
         )}
       </button>
     </div>
+    </MountedOnly>
   );
 }

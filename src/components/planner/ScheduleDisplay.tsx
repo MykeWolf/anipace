@@ -8,6 +8,7 @@ import { toggleDayComplete } from "@/lib/localStorage";
 import { getNewlyEarnedMilestones, type Milestone } from "@/lib/milestones";
 import PlanDownloadButton from "@/components/pdf/PlanDownloadButton";
 import confetti from "canvas-confetti";
+import { formatShortDate, formatFullDate, formatDayDate, formatWeekRange } from "@/lib/dateUtils";
 
 // ── Date / formatting helpers ─────────────────────────────────────────────────
 
@@ -17,37 +18,20 @@ function parseLocal(iso: string): Date {
 }
 
 function shortDate(iso: string): string {
-  return parseLocal(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  return formatShortDate(iso);
 }
 
 function fullDate(iso: string): string {
-  return parseLocal(iso).toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatFullDate(iso);
 }
 
 function dayDate(iso: string): string {
-  return parseLocal(iso).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  return formatDayDate(iso);
 }
 
 function weekDateRange(week: ScheduleWeek): string {
   if (week.days.length === 0) return "";
-  const first = parseLocal(week.days[0].date);
-  const last = parseLocal(week.days[week.days.length - 1].date);
-  const fm = first.toLocaleDateString("en-US", { month: "short" });
-  const lm = last.toLocaleDateString("en-US", { month: "short" });
-  const fd = first.getDate();
-  const ld = last.getDate();
-  return fm === lm ? `${fm} ${fd}–${ld}` : `${fm} ${fd} – ${lm} ${ld}`;
+  return formatWeekRange(week.days[0].date, week.days[week.days.length - 1].date);
 }
 
 function weekEpRange(week: ScheduleWeek): { from: number; to: number } | null {

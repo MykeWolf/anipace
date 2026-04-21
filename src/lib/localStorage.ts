@@ -15,6 +15,7 @@ const STORAGE_KEY = "anipace_plans";
 
 /** Returns true if localStorage is available and writable. */
 function isAvailable(): boolean {
+  if (typeof window === "undefined") return false;
   try {
     const test = "__anipace_test__";
     localStorage.setItem(test, "1");
