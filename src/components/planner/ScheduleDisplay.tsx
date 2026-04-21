@@ -1,25 +1,13 @@
 "use client";
 
-/**
- * ScheduleDisplay
- *
- * Renders a generated SavedPlan following the PRD "Schedule Display Layout":
- *
- *   1. Summary stats bar — Finish date · Weeks · Eps/week · Total hours
- *   2. Week-by-week collapsible list
- *      - First 2 weeks expanded by default; the rest collapsed
- *      - Week header: "Week 1 · Mar 4–10"  |  "Ep 1–14"
- *      - Day rows: day+date | episode range | watch time (dimmed for rest days)
- *   3. Action buttons — Save Plan (accent) · Start Over (outlined) · Delete Plan (red text, saved only)
- *
- * PRD notes:
- *   - "Days with no scheduled episodes show as dimmed/skipped"
- *   - "Use subtle divider lines (#2A2A2A) between days, not heavy borders"
- *   - "'Delete Plan' in red text (no background), only visible for saved plans"
- */
-
 import { useState } from "react";
-import type { SavedPlan, ScheduleWeek } from "@/types";
+import type { MilestoneBadge as MilestoneBadgeType, SavedPlan, ScheduleWeek } from "@/types";
+import ProgressBar from "@/components/planner/ProgressBar";
+import MilestoneBadge from "@/components/planner/MilestoneBadge";
+import { toggleDayComplete } from "@/lib/localStorage";
+import { getNewlyEarnedMilestones, type Milestone } from "@/lib/milestones";
+import PlanDownloadButton from "@/components/pdf/PlanDownloadButton";
+import confetti from "canvas-confetti";
 
 // ── Date / formatting helpers ─────────────────────────────────────────────────
 
@@ -28,7 +16,6 @@ function parseLocal(iso: string): Date {
   return new Date(y, m - 1, d);
 }
 
-/** "Mar 4" */
 function shortDate(iso: string): string {
   return parseLocal(iso).toLocaleDateString("en-US", {
     month: "short",
@@ -36,7 +23,6 @@ function shortDate(iso: string): string {
   });
 }
 
-/** "March 22, 2026" */
 function fullDate(iso: string): string {
   return parseLocal(iso).toLocaleDateString("en-US", {
     month: "long",
@@ -45,7 +31,6 @@ function fullDate(iso: string): string {
   });
 }
 
-/** "Mon, Mar 4" */
 function dayDate(iso: string): string {
   return parseLocal(iso).toLocaleDateString("en-US", {
     weekday: "short",
@@ -54,24 +39,18 @@ function dayDate(iso: string): string {
   });
 }
 
-/** "Mar 10–16"  or  "Mar 28 – Apr 3" */
 function weekDateRange(week: ScheduleWeek): string {
   if (week.days.length === 0) return "";
   const first = parseLocal(week.days[0].date);
   const last = parseLocal(week.days[week.days.length - 1].date);
-
   const fm = first.toLocaleDateString("en-US", { month: "short" });
   const lm = last.toLocaleDateString("en-US", { month: "short" });
   const fd = first.getDate();
   const ld = last.getDate();
-
   return fm === lm ? `${fm} ${fd}–${ld}` : `${fm} ${fd} – ${lm} ${ld}`;
 }
 
-/** Episode range covered in a week (first active day → last active day). */
-function weekEpRange(
-  week: ScheduleWeek
-): { from: number; to: number } | null {
+function weekEpRange(week: ScheduleWeek): { from: number; to: number } | null {
   const active = week.days.filter((d) => d.episodes !== null);
   if (active.length === 0) return null;
   return {
@@ -80,7 +59,6 @@ function weekEpRange(
   };
 }
 
-/** "48 min"  or  "1h 12m"  or  "2h" */
 function fmtMinutes(m: number): string {
   if (m === 0) return "—";
   if (m < 60) return `${m} min`;
@@ -117,10 +95,10 @@ function ChevronIcon({ open }: { open: boolean }) {
 interface Props {
   plan: SavedPlan;
   isSaved: boolean;
-  /** Return true if save succeeded. */
-  onSave: () => boolean;
+  onSave: () => boolean | Promise<boolean>;
   onDelete: () => void;
   onStartOver: () => void;
+  onProgressChange?: (updatedPlan: SavedPlan) => void;
 }
 
 export default function ScheduleDisplay({
@@ -129,12 +107,41 @@ export default function ScheduleDisplay({
   onSave,
   onDelete,
   onStartOver,
+  onProgressChange,
 }: Props) {
-  // Weeks 1 and 2 open by default (PRD: "collapsed by default after week 2")
   const [expandedWeeks, setExpandedWeeks] = useState<Set<number>>(
     () => new Set([1, 2])
   );
   const [saveError, setSaveError] = useState(false);
+  const [pendingBadge, setPendingBadge] = useState<MilestoneBadgeType | null>(null);
+  const [badgesOpen, setBadgesOpen] = useState(false);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const completedDays = plan.completedDays ?? [];
+
+  // ── Progress calculations ────────────────────────────────────────────────────
+  const allDays = plan.weeks.flatMap((w) => w.days);
+  const episodeDays = allDays.filter((d) => d.episodes !== null);
+  const totalEpisodeDays = episodeDays.length;
+
+  function computeEpisodesWatched(completed: string[]): number {
+    return episodeDays
+      .filter((d) => completed.includes(d.date))
+      .reduce((sum, d) => sum + (d.episodes!.to - d.episodes!.from + 1), 0);
+  }
+
+  const episodesWatched = computeEpisodesWatched(completedDays);
+  const completedCount = episodeDays.filter((d) =>
+    completedDays.includes(d.date)
+  ).length;
+
+  function toPct(watched: number): number {
+    return plan.totalEpisodes > 0
+      ? Math.round((watched / plan.totalEpisodes) * 100)
+      : 0;
+  }
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
 
   function toggleWeek(n: number) {
     setExpandedWeeks((prev) => {
@@ -144,201 +151,308 @@ export default function ScheduleDisplay({
     });
   }
 
-  function handleSave() {
+  async function handleSave() {
     setSaveError(false);
-    const ok = onSave();
+    const ok = await onSave();
     if (!ok) setSaveError(true);
   }
 
-  const { summary } = plan;
+  function handleDayToggle(date: string) {
+    toggleDayComplete(plan.id, date);
+    const prev = plan.completedDays ?? [];
+    const isAdding = !prev.includes(date);
+    const newCompleted = isAdding
+      ? [...prev, date]
+      : prev.filter((d) => d !== date);
 
-  // Is the projected finish date later than the user's target? (only relevant when a target was set)
+    const oldWatched = computeEpisodesWatched(prev);
+    const newWatched = computeEpisodesWatched(newCompleted);
+    const oldPct = toPct(oldWatched);
+    const newPct = toPct(newWatched);
+
+    const existingBadges = plan.earnedBadges ?? [];
+    const alreadyEarned = new Set(existingBadges.map((b) => b.milestone as Milestone));
+    const newMilestones = isAdding
+      ? getNewlyEarnedMilestones(oldPct, newPct, alreadyEarned)
+      : [];
+
+    let updatedPlan: SavedPlan = { ...plan, completedDays: newCompleted };
+
+    if (isAdding) {
+      // Small confetti on every tick
+      confetti({
+        particleCount: 14,
+        spread: 50,
+        origin: { x: 0.5, y: 0.65 },
+        colors: ["#8ab4f8", "#ffffff", "#a8c7fa"],
+        scalar: 0.75,
+        gravity: 1.4,
+        drift: 0,
+      });
+
+      if (newMilestones.length > 0) {
+        const newBadges: MilestoneBadgeType[] = newMilestones.map((m) => ({
+          milestone: m,
+          earnedAt: new Date().toISOString(),
+          episodesWatched: newWatched,
+        }));
+        updatedPlan = {
+          ...updatedPlan,
+          earnedBadges: [...existingBadges, ...newBadges],
+        };
+        setPendingBadge(newBadges[newBadges.length - 1]);
+        // Big burst on milestone
+        confetti({
+          particleCount: 140,
+          spread: 90,
+          origin: { x: 0.5, y: 0.4 },
+          colors: ["#8ab4f8", "#ffffff", "#a8c7fa", "#c4d7f9", "#ffd700"],
+          scalar: 1.1,
+        });
+      }
+    } else {
+      // Rollback badges that are above the new percentage
+      updatedPlan = {
+        ...updatedPlan,
+        earnedBadges: existingBadges.filter((b) => newPct >= b.milestone),
+      };
+    }
+
+    onProgressChange?.(updatedPlan);
+  }
+
+  const { summary } = plan;
   const isLate = !!plan.targetDate && summary.projectedFinishDate > plan.targetDate;
+  const earnedBadges = plan.earnedBadges ?? [];
 
   return (
-    <div className="w-full mt-2 pb-12">
-      {/* ── Late-finish warning ─────────────────────────────────────────── */}
-      {isLate && (
-        <div className="mx-6 mb-4 rounded-[12px] bg-amber-500/10 border border-amber-500/25 px-4 py-3">
-          <p className="text-[0.8125rem] text-amber-400 leading-snug">
-            ⚠ At this pace you&apos;ll finish by{" "}
-            <span className="font-semibold">
-              {fullDate(summary.projectedFinishDate)}
-            </span>
-            , after your target. Increase your episodes/day to finish sooner.
-          </p>
+    <>
+      {/* ── Milestone badge modal ─────────────────────────────────────────── */}
+      {pendingBadge && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-black/85 px-6"
+          onClick={() => setPendingBadge(null)}
+        >
+          <div onClick={(e) => e.stopPropagation()} className="w-full">
+            <p className="text-center text-white/70 text-[0.8125rem] mb-4 font-medium tracking-wide uppercase">
+              Milestone unlocked
+            </p>
+            <MilestoneBadge badge={pendingBadge} plan={plan} />
+            <button
+              onClick={() => setPendingBadge(null)}
+              className="
+                mt-5 w-full max-w-[320px] mx-auto block
+                rounded-full border border-white/20
+                text-white/70 hover:text-white hover:border-white/40
+                py-3 text-[0.875rem] font-semibold
+                transition-colors
+              "
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 
-      {/* ── Summary stats ──────────────────────────────────────────────── */}
-      <div className="mx-6 mb-5 rounded-[14px] bg-surface overflow-hidden border border-border/60">
-        <div className="grid grid-cols-4 divide-x divide-border">
-          {[
-            {
-              label: "Finish",
-              value: shortDate(summary.projectedFinishDate),
-            },
-            { label: "Weeks", value: String(summary.totalWeeks) },
-            { label: "Ep/week", value: summary.episodesPerWeekAvg.toFixed(1) },
-            { label: "Hours", value: summary.totalWatchHours.toFixed(1) },
-          ].map(({ label, value }) => (
-            <div
-              key={label}
-              className="flex flex-col items-center py-4 px-1.5 gap-0.5"
-            >
-              <span className="text-[1rem] font-bold text-foreground leading-tight tabular-nums">
-                {value}
+      <div className="w-full mt-2 pb-12">
+        {/* ── Late-finish warning ─────────────────────────────────────────── */}
+        {isLate && (
+          <div className="mx-6 mb-4 rounded-[12px] bg-amber-500/10 border border-amber-500/25 px-4 py-3">
+            <p className="text-[0.8125rem] text-amber-400 leading-snug">
+              ⚠ At this pace you&apos;ll finish by{" "}
+              <span className="font-semibold">
+                {fullDate(summary.projectedFinishDate)}
               </span>
-              <span className="text-[0.625rem] text-foreground-muted uppercase tracking-widest">
-                {label}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Week-by-week list ───────────────────────────────────────────── */}
-      <div className="border-y border-border divide-y divide-border">
-        {plan.weeks.map((week) => {
-          const isOpen = expandedWeeks.has(week.weekNumber);
-          const epRange = weekEpRange(week);
-          const dateRange = weekDateRange(week);
-
-          return (
-            <div key={week.weekNumber}>
-              {/* Week header (toggle button) */}
-              <button
-                onClick={() => toggleWeek(week.weekNumber)}
-                aria-expanded={isOpen}
-                className="
-                  w-full flex items-center justify-between
-                  px-6 py-4 text-left
-                  hover:bg-surface/60 transition-colors
-                "
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-foreground-muted">
-                    <ChevronIcon open={isOpen} />
-                  </span>
-                  <span className="text-[0.9375rem] font-semibold text-foreground whitespace-nowrap">
-                    Week {week.weekNumber}
-                  </span>
-                  <span className="text-[0.875rem] text-foreground-muted truncate">
-                    · {dateRange}
-                  </span>
-                </div>
-
-                {epRange && (
-                  <span className="text-[0.8125rem] text-foreground-muted flex-shrink-0 ml-2">
-                    Ep {epRange.from}–{epRange.to}
-                  </span>
-                )}
-              </button>
-
-              {/* Day rows */}
-              {isOpen && (
-                <div className="divide-y divide-border/40 bg-background/40">
-                  {week.days.map((day) => {
-                    const isRest = day.episodes === null;
-                    return (
-                      <div
-                        key={day.date}
-                        className={`
-                          flex items-center px-6 py-3 gap-2
-                          text-[0.8125rem]
-                          ${isRest ? "opacity-35" : ""}
-                        `}
-                      >
-                        {/* Day name + date */}
-                        <span className="w-[7rem] flex-shrink-0 text-foreground-muted">
-                          {dayDate(day.date)}
-                        </span>
-
-                        {/* Episode range */}
-                        <span
-                          className={`flex-1 ${isRest ? "text-foreground-muted" : "text-foreground font-medium"}`}
-                        >
-                          {isRest
-                            ? "Rest"
-                            : `Ep ${day.episodes!.from}–${day.episodes!.to}`}
-                        </span>
-
-                        {/* Watch time */}
-                        <span className="text-foreground-muted text-right flex-shrink-0">
-                          {fmtMinutes(day.estimatedMinutes)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── Action buttons ──────────────────────────────────────────────── */}
-      <div className="px-6 pt-8 space-y-3">
-        {/* Save Plan — only shown when not yet saved */}
-        {!isSaved && (
-          <button
-            onClick={handleSave}
-            className="
-              w-full rounded-full bg-accent text-primary-foreground
-              py-3.5 text-[0.9375rem] font-semibold
-              hover:brightness-110 active:brightness-95
-              transition-all
-            "
-          >
-            Save Plan
-          </button>
-        )}
-
-        {/* Saved confirmation */}
-        {isSaved && (
-          <div className="w-full rounded-full bg-surface border border-border py-3.5 text-center">
-            <span className="text-[0.9375rem] font-semibold text-accent">
-              ✓ Plan saved
-            </span>
+              , after your target. Increase your episodes/day to finish sooner.
+            </p>
           </div>
         )}
 
-        {/* Save error */}
-        {saveError && (
-          <p className="text-[0.8125rem] text-destructive text-center">
-            Couldn&apos;t save — storage may be full or unavailable.
-          </p>
+        {/* ── Progress bar ──────────────────────────────────────────────── */}
+        {totalEpisodeDays > 0 && (
+          <ProgressBar
+            completedCount={completedCount}
+            totalEpisodeDays={totalEpisodeDays}
+            episodesWatched={episodesWatched}
+            totalEpisodes={plan.totalEpisodes}
+          />
         )}
 
-        {/* Start Over */}
-        <button
-          onClick={onStartOver}
-          className="
-            w-full rounded-full border border-border
-            text-foreground-muted py-3.5
-            text-[0.9375rem] font-semibold
-            hover:text-foreground hover:border-foreground-muted
-            transition-all
-          "
-        >
-          Start Over
-        </button>
+        {/* ── Summary stats ──────────────────────────────────────────────── */}
+        <div className="mx-6 mb-5 rounded-[14px] bg-surface overflow-hidden border border-border/60">
+          <div className="grid grid-cols-4 divide-x divide-border">
+            {[
+              { label: "Finish", value: shortDate(summary.projectedFinishDate) },
+              { label: "Weeks", value: String(summary.totalWeeks) },
+              { label: "Ep/week", value: summary.episodesPerWeekAvg.toFixed(1) },
+              { label: "Hours", value: summary.totalWatchHours.toFixed(1) },
+            ].map(({ label, value }) => (
+              <div key={label} className="flex flex-col items-center py-4 px-1.5 gap-0.5">
+                <span className="text-[1rem] font-bold text-foreground leading-tight tabular-nums">
+                  {value}
+                </span>
+                <span className="text-[0.625rem] text-foreground-muted uppercase tracking-widest">
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-        {/* Delete Plan — only for saved plans */}
-        {isSaved && (
+        {/* ── Week-by-week list ───────────────────────────────────────────── */}
+        <div className="border-y border-border divide-y divide-border">
+          {plan.weeks.map((week) => {
+            const isOpen = expandedWeeks.has(week.weekNumber);
+            const epRange = weekEpRange(week);
+            const dateRange = weekDateRange(week);
+
+            return (
+              <div key={week.weekNumber}>
+                <button
+                  onClick={() => toggleWeek(week.weekNumber)}
+                  aria-expanded={isOpen}
+                  className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-surface/60 transition-colors"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-foreground-muted">
+                      <ChevronIcon open={isOpen} />
+                    </span>
+                    <span className="text-[0.9375rem] font-semibold text-foreground whitespace-nowrap">
+                      Week {week.weekNumber}
+                    </span>
+                    <span className="text-[0.875rem] text-foreground-muted truncate">
+                      · {dateRange}
+                    </span>
+                  </div>
+                  {epRange && (
+                    <span className="text-[0.8125rem] text-foreground-muted flex-shrink-0 ml-2">
+                      Ep {epRange.from}–{epRange.to}
+                    </span>
+                  )}
+                </button>
+
+                {isOpen && (
+                  <div className="divide-y divide-border/40 bg-background/40">
+                    {week.days.map((day) => {
+                      const isRest = day.episodes === null;
+                      const isToday = day.date === today;
+                      const isDone = completedDays.includes(day.date);
+
+                      return (
+                        <div
+                          key={day.date}
+                          className={[
+                            "flex items-center px-6 py-3 gap-3 text-[0.8125rem]",
+                            isRest ? "opacity-35" : "",
+                            isToday ? "bg-accent/10 border-l-2 border-accent" : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                        >
+                          {!isRest ? (
+                            <input
+                              type="checkbox"
+                              checked={isDone}
+                              onChange={() => handleDayToggle(day.date)}
+                              className="flex-shrink-0 w-4 h-4 accent-[var(--accent)] cursor-pointer"
+                              aria-label={`Mark ${day.date} as watched`}
+                            />
+                          ) : (
+                            <span className="flex-shrink-0 w-4 h-4" />
+                          )}
+
+                          <span className="w-[7rem] flex-shrink-0 text-foreground-muted">
+                            {dayDate(day.date)}
+                          </span>
+
+                          <span
+                            className={`flex-1 ${isRest ? "text-foreground-muted" : "text-foreground font-medium"} ${isDone ? "line-through opacity-50" : ""}`}
+                          >
+                            {isRest
+                              ? "Rest"
+                              : `Ep ${day.episodes!.from}–${day.episodes!.to}`}
+                          </span>
+
+                          <span className="text-foreground-muted text-right flex-shrink-0">
+                            {fmtMinutes(day.estimatedMinutes)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Action buttons ──────────────────────────────────────────────── */}
+        <div className="px-6 pt-8 space-y-3">
+          {!isSaved && (
+            <button
+              onClick={handleSave}
+              className="w-full rounded-full bg-accent text-primary-foreground py-3.5 text-[0.9375rem] font-semibold hover:brightness-110 active:brightness-95 transition-all"
+            >
+              Save Plan
+            </button>
+          )}
+
+          {isSaved && (
+            <div className="w-full rounded-full bg-surface border border-border py-3.5 text-center">
+              <span className="text-[0.9375rem] font-semibold text-accent">
+                ✓ Plan saved
+              </span>
+            </div>
+          )}
+
+          {saveError && (
+            <p className="text-[0.8125rem] text-destructive text-center">
+              Couldn&apos;t save — storage may be full or unavailable.
+            </p>
+          )}
+
           <button
-            onClick={onDelete}
-            className="
-              w-full py-3
-              text-[0.875rem] text-destructive
-              hover:text-destructive/75
-              transition-colors
-            "
+            onClick={onStartOver}
+            className="w-full rounded-full border border-border text-foreground-muted py-3.5 text-[0.9375rem] font-semibold hover:text-foreground hover:border-foreground-muted transition-all"
           >
-            Delete Plan
+            Start Over
           </button>
+
+          <PlanDownloadButton plan={plan} />
+
+          {isSaved && (
+            <button
+              onClick={onDelete}
+              className="w-full py-3 text-[0.875rem] text-destructive hover:text-destructive/75 transition-colors"
+            >
+              Delete Plan
+            </button>
+          )}
+        </div>
+
+        {/* ── View Badges ──────────────────────────────────────────────────── */}
+        {earnedBadges.length > 0 && (
+          <div className="px-6 pt-6">
+            <button
+              onClick={() => setBadgesOpen((prev) => !prev)}
+              className="flex items-center gap-2 text-[0.875rem] text-foreground-muted hover:text-foreground transition-colors w-full"
+            >
+              <ChevronIcon open={badgesOpen} />
+              <span className="font-semibold">
+                View Badges ({earnedBadges.length})
+              </span>
+            </button>
+
+            {badgesOpen && (
+              <div className="mt-4 space-y-4">
+                {earnedBadges.map((badge) => (
+                  <MilestoneBadge key={badge.milestone} badge={badge} plan={plan} />
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

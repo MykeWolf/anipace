@@ -21,7 +21,7 @@ export default function HowItWorks() {
       </h2>
 
       {/* Steps */}
-      <ol className="space-y-7">
+      <ol className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
         {STEPS.map((step, i) => (
           <li key={step} className="flex items-start gap-5">
             {/* Step number */}

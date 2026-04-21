@@ -19,7 +19,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import type { SavedPlan } from "@/types";
-import { loadPlans, deletePlan } from "@/lib/localStorage";
+import { loadUserPlans, saveUserPlan, deleteUserPlan } from "@/lib/planStorage";
 import ScheduleDisplay from "@/components/planner/ScheduleDisplay";
 
 // ── Date helper ───────────────────────────────────────────────────────────────
@@ -128,7 +128,7 @@ export default function SavedPlansSection() {
   const [viewing, setViewing] = useState<SavedPlan | null>(null);
 
   const refresh = useCallback(() => {
-    setPlans(loadPlans());
+    loadUserPlans().then(setPlans);
   }, []);
 
   useEffect(() => {
@@ -143,8 +143,16 @@ export default function SavedPlansSection() {
     };
   }, [refresh]);
 
+  function handleProgressChange(updatedPlan: SavedPlan) {
+    saveUserPlan(updatedPlan);
+    setViewing(updatedPlan);
+    setPlans((prev) =>
+      prev.map((p) => (p.id === updatedPlan.id ? updatedPlan : p))
+    );
+  }
+
   function handleDelete(plan: SavedPlan) {
-    deletePlan(plan.id);
+    deleteUserPlan(plan.id);
     setPlans((prev) => prev.filter((p) => p.id !== plan.id));
     if (viewing?.id === plan.id) setViewing(null);
     // Notify PlannerSection so it can clear its isSaved flag
@@ -194,6 +202,7 @@ export default function SavedPlansSection() {
           onSave={() => false}
           onDelete={() => handleDelete(viewing)}
           onStartOver={() => setViewing(null)}
+          onProgressChange={handleProgressChange}
         />
       </section>
     );
@@ -245,7 +254,7 @@ export default function SavedPlansSection() {
         </div>
       ) : (
         // ── Plan cards ───────────────────────────────────────────────────────
-        <div className="px-6 pb-14 space-y-4">
+        <div className="px-6 pb-14 grid grid-cols-1 md:grid-cols-2 gap-4">
           {plans.map((plan) => (
             <PlanCard
               key={plan.id}

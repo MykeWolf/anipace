@@ -50,6 +50,12 @@ export interface ScheduleSummary {
   projectedFinishDate: string; // ISO date string
 }
 
+export interface MilestoneBadge {
+  milestone: 25 | 50 | 75 | 100;
+  earnedAt: string; // ISO datetime string
+  episodesWatched: number;
+}
+
 export interface SavedPlan {
   id: string; // uuid
   animeTitle: string;
@@ -62,6 +68,8 @@ export interface SavedPlan {
   createdAt: string; // ISO datetime string
   weeks: ScheduleWeek[];
   summary: ScheduleSummary;
+  completedDays?: string[]; // ISO date strings of days marked as watched
+  earnedBadges?: MilestoneBadge[];
 }
 
 // ─── Scheduling Input Types ──────────────────────────────────────────────────

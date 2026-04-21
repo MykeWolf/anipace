@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Syne } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
   variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const syne = Syne({
+  variable: "--font-syne",
   subsets: ["latin"],
   display: "swap",
 });
@@ -27,13 +33,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} scroll-smooth`}>
+    <html lang="en" className={`${inter.variable} ${syne.variable} scroll-smooth`}>
       <body className="antialiased bg-background text-foreground">
         {/*
           Mobile-first: full width up to 480px, then centered on wider screens.
           Outer bg (#121212) fills the rest of the viewport on desktop.
         */}
-        <div className="mx-auto w-full max-w-[480px] min-h-screen">
+        <div className="mx-auto w-full max-w-[480px] md:max-w-3xl lg:max-w-5xl min-h-screen">
           {children}
         </div>
       </body>

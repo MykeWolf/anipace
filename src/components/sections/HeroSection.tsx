@@ -8,90 +8,103 @@
  */
 
 import SmoothScrollButton from "@/components/ui/SmoothScrollButton";
+import AuthButton from "@/components/auth/AuthButton";
 
 export default function HeroSection() {
   return (
     <section
-      className="relative flex flex-col overflow-hidden w-full"
-      style={{ minHeight: "88svh" }}
+      className="relative flex flex-col w-full min-h-[72svh] md:min-h-[62vh]"
     >
-      {/* ── Cinematic atmospheric background ─────────────────────────────── */}
-      {/*
-       * Replicates the "large blurred artwork at low opacity" feel from the PRD
-       * using layered CSS gradients. Replace the outermost div's background with
-       * a Next.js <Image> once real anime artwork is available.
-       */}
+      {/* ── Cinematic atmospheric background — full viewport width ──────── */}
       <div
         aria-hidden
-        className="absolute inset-0"
+        className="absolute top-0 bottom-0 pointer-events-none"
         style={{
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "100vw",
           background: [
-            /* Blue halo — references the accent colour */
             "radial-gradient(ellipse 120% 60% at 50% -5%, rgba(100,148,240,0.18) 0%, transparent 58%)",
-            /* Side depth */
             "radial-gradient(ellipse 50% 40% at 80% 70%, rgba(90,110,200,0.07) 0%, transparent 50%)",
-            /* Base gradient: near-black deep blue → background */
             "linear-gradient(175deg, #08081f 0%, #0c0c1c 20%, #0f0f18 45%, #121212 75%)",
           ].join(", "),
         }}
       />
 
-      {/* ── Bottom gradient: strong fade to page background ───────────────── */}
+      {/* ── Bottom gradient: full viewport width fade ─────────────────────── */}
       <div
         aria-hidden
-        className="absolute bottom-0 inset-x-0 h-[55%] pointer-events-none"
+        className="absolute bottom-0 h-[55%] pointer-events-none"
         style={{
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "100vw",
           background:
             "linear-gradient(to top, #121212 0%, #121212 15%, rgba(18,18,18,0.85) 45%, transparent 100%)",
         }}
       />
 
       {/* ── AniPace wordmark (top of hero) ───────────────────────────────── */}
-      <div className="relative z-10 pt-10 px-6 text-center">
-        <span className="text-[0.875rem] font-bold tracking-[0.22em] uppercase text-accent/90 select-none">
-          AniPace
-        </span>
-        <p className="text-[0.6875rem] text-foreground-muted/50 mt-1 tracking-wide">
-          by{" "}
-          <a
-            href="https://www.instagram.com/themichaelleonard/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-foreground-muted transition-colors"
-          >
-            @themichaelleonard
-          </a>
-        </p>
+      <div className="relative z-10 pt-10 px-6 flex items-start animate-hero-fade-up" style={{ animationDelay: "0ms" }}>
+        {/* left spacer keeps wordmark visually centered */}
+        <div className="flex-1" />
+        <div className="text-center">
+          <span className="text-[1.125rem] font-bold tracking-[0.18em] uppercase text-accent/90 select-none" style={{ fontFamily: "var(--font-display)" }}>
+            AniPace
+          </span>
+          <p className="text-[0.6875rem] text-foreground-muted/50 mt-1 tracking-wide">
+            by{" "}
+            <a
+              href="https://www.instagram.com/themichaelleonard/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground-muted transition-colors"
+            >
+              @themichaelleonard
+            </a>
+          </p>
+        </div>
+        <div className="flex-1 flex justify-end pt-1">
+          <AuthButton />
+        </div>
       </div>
 
-      {/* ── Spacer: pushes content to bottom ─────────────────────────────── */}
-      <div className="flex-1 min-h-[4rem]" />
+      {/* ── Spacer: pushes content to bottom (capped on desktop) ────────── */}
+      <div className="flex-1 min-h-[4rem] md:max-h-40" />
 
       {/* ── Main content: headline + subline + CTA ───────────────────────── */}
       <div className="relative z-10 px-6 pb-16 text-center">
-        <h1 className="text-[2.125rem] leading-[1.18] font-bold tracking-tight text-white mb-5">
+        <h1
+          className="text-[2.125rem] md:text-[2.75rem] lg:text-[3.25rem] leading-[1.18] font-bold tracking-tight text-white mb-5 animate-hero-fade-up"
+          style={{ animationDelay: "120ms" }}
+        >
           Stop saying you&apos;ll watch it.{" "}
           <span className="text-accent">Actually&nbsp;finish&nbsp;it.</span>
         </h1>
 
-        <p className="text-[0.9375rem] leading-relaxed text-foreground-muted mb-14 max-w-[300px] mx-auto">
+        <p
+          className="text-[0.9375rem] leading-relaxed text-foreground-muted mb-14 max-w-[300px] mx-auto animate-hero-fade-up"
+          style={{ animationDelay: "240ms" }}
+        >
           Tell us the anime, tell us your schedule, and we&apos;ll build a watching
           plan that fits your real life. No more staring at 500 episodes wondering
           where to start.
         </p>
 
-        <SmoothScrollButton
-          targetId="planner"
-          className="
-            inline-flex items-center justify-center w-full
-            rounded-[999px] bg-accent text-[#0f0f0f]
-            font-semibold text-[0.9375rem] py-[0.9375rem]
-            transition-opacity hover:opacity-90 active:opacity-75
-            shadow-[0_0_28px_rgba(138,180,248,0.38)]
-          "
-        >
-          Plan Your Watch
-        </SmoothScrollButton>
+        <div className="animate-hero-fade-up" style={{ animationDelay: "360ms" }}>
+          <SmoothScrollButton
+            targetId="planner"
+            className="
+              inline-flex items-center justify-center w-full md:max-w-sm md:mx-auto
+              rounded-[999px] bg-accent text-[#0f0f0f]
+              font-semibold text-[0.9375rem] py-[0.9375rem]
+              transition-opacity hover:opacity-90 active:opacity-75
+              animate-cta-pulse
+            "
+          >
+            Plan Your Watch
+          </SmoothScrollButton>
+        </div>
       </div>
     </section>
   );

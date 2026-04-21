@@ -81,3 +81,28 @@ export function deletePlan(id: string): boolean {
 export function isPlanSaved(id: string): boolean {
   return loadPlans().some((p) => p.id === id);
 }
+
+/**
+ * Toggle a day's completion status for a plan.
+ * If the date is already in completedDays, it is removed; otherwise it is added.
+ * Returns true on success, false if plan not found or storage unavailable.
+ */
+export function toggleDayComplete(planId: string, date: string): boolean {
+  if (!isAvailable()) return false;
+  try {
+    const plans = loadPlans();
+    const plan = plans.find((p) => p.id === planId);
+    if (!plan) return false;
+    const completed = plan.completedDays ?? [];
+    const idx = completed.indexOf(date);
+    plan.completedDays =
+      idx >= 0
+        ? completed.filter((d) => d !== date)
+        : [...completed, date];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
+    return true;
+  } catch (err) {
+    console.warn("[AniPace] Failed to toggle day complete:", err);
+    return false;
+  }
+}

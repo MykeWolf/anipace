@@ -46,41 +46,58 @@ export default function AnimeDetailBanner({
         : null;
 
   return (
-    <div className="w-full mt-5">
-      {/* ── Cover art (full bleed, ~58svh) ───────────────────────────────── */}
+    <div className="w-full mt-3">
+      {/* ── Cover art banner ─────────────────────────────────────────────── */}
       <div
         className="relative w-full overflow-hidden"
-        style={{ height: "58svh", minHeight: "220px", maxHeight: "360px" }}
+        style={{ height: "70svh", minHeight: "320px", maxHeight: "520px" }}
       >
-        {/* Artwork */}
+        {/* Layer 1: blurred background — same image zoomed + blurred to fill */}
         <Image
           src={anime.coverImage}
-          alt={`${anime.title} cover art`}
+          alt=""
           fill
           priority
-          sizes="480px"
-          className="object-cover object-top"
+          aria-hidden
+          sizes="800px"
+          className="object-cover object-center scale-110 blur-xl opacity-40"
         />
 
-        {/*
-         * Gradient overlay: transparent at top → solid background at bottom.
-         * Three-stop gradient for a smooth, cinematic fade.
-         */}
+        {/* Layer 2: full cover art at natural ratio, centered */}
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          <div className="relative h-full" style={{ aspectRatio: "2/3" }}>
+            <Image
+              src={anime.coverImage}
+              alt={`${anime.title} cover art`}
+              fill
+              priority
+              sizes="360px"
+              className="object-contain"
+            />
+          </div>
+        </div>
+
+        {/* Layer 3: cinematic gradient fades */}
         <div
           aria-hidden
-          className="absolute inset-0"
+          className="absolute inset-0 z-20"
           style={{
             background:
-              "linear-gradient(to bottom, " +
-              "rgba(18,18,18,0) 0%, " +
-              "rgba(18,18,18,0) 30%, " +
-              "rgba(18,18,18,0.6) 60%, " +
-              "#121212 90%)",
+              "linear-gradient(to bottom, rgba(18,18,18,0.4) 0%, rgba(18,18,18,0) 20%, rgba(18,18,18,0) 45%, rgba(18,18,18,0.7) 70%, #121212 95%)",
+          }}
+        />
+        {/* Side fades to blend into page background */}
+        <div
+          aria-hidden
+          className="absolute inset-0 z-20"
+          style={{
+            background:
+              "linear-gradient(to right, #121212 0%, transparent 15%, transparent 85%, #121212 100%)",
           }}
         />
 
-        {/* Title + meta anchored at the bottom of the banner */}
-        <div className="absolute bottom-0 inset-x-0 px-6 pb-5 z-10">
+        {/* Title + meta anchored at the bottom */}
+        <div className="absolute bottom-0 inset-x-0 px-6 pb-5 z-30">
           <h2 className="text-[1.375rem] font-bold text-white leading-tight drop-shadow-sm">
             {anime.title_english ?? anime.title}
           </h2>

@@ -29,7 +29,8 @@ import AnimeSearch from "@/components/search/AnimeSearch";
 import AnimeDetailBanner from "@/components/search/AnimeDetailBanner";
 import PlanningControls from "@/components/planner/PlanningControls";
 import ScheduleDisplay from "@/components/planner/ScheduleDisplay";
-import { savePlan, deletePlan } from "@/lib/localStorage";
+import { saveUserPlan, deleteUserPlan } from "@/lib/planStorage";
+
 
 export default function PlannerSection() {
   const [selectedAnime, setSelectedAnime] =
@@ -74,23 +75,26 @@ export default function PlannerSection() {
     setIsSaved(false);
   }
 
-  function handleSave(): boolean {
+  async function handleSave(): Promise<boolean> {
     if (!generatedPlan) return false;
-    const ok = savePlan(generatedPlan);
+    const ok = await saveUserPlan(generatedPlan);
     if (ok) {
       setIsSaved(true);
-      // Notify SavedPlansSection to refresh its list
       window.dispatchEvent(new CustomEvent("anipace:saved"));
     }
     return ok;
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!generatedPlan) return;
-    deletePlan(generatedPlan.id);
+    await deleteUserPlan(generatedPlan.id);
     setIsSaved(false);
-    // Notify SavedPlansSection to refresh its list
     window.dispatchEvent(new CustomEvent("anipace:saved"));
+  }
+
+  function handleProgressChange(updatedPlan: SavedPlan) {
+    setGeneratedPlan(updatedPlan);
+    if (isSaved) saveUserPlan(updatedPlan);
   }
 
   function handleStartOver() {
@@ -147,6 +151,7 @@ export default function PlannerSection() {
           onSave={handleSave}
           onDelete={handleDelete}
           onStartOver={handleStartOver}
+          onProgressChange={handleProgressChange}
         />
       )}
     </section>

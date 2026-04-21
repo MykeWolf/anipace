@@ -1,17 +1,10 @@
-/*
- * FounderStory
- *
- * PRD: "Plain text block on the dark background. Slightly larger line-height for
- * readability. No card or container — just text floating on the dark surface."
- *
- * Copy is taken verbatim from the PRD's Founder Story appendix.
- */
+import { Coffee } from "lucide-react";
 
 export default function FounderStory() {
   return (
     <section className="px-6 pt-2 pb-16 border-t border-border">
       <div
-        className="mt-12 space-y-5 text-[0.9375rem] leading-[1.8] text-foreground-muted"
+        className="mt-12 space-y-5 text-[0.9375rem] leading-[1.8] text-foreground-muted max-w-[60ch]"
       >
         {/* Opening line — slightly emphasised */}
         <p className="text-foreground font-medium text-[1rem] leading-snug">
@@ -45,6 +38,18 @@ export default function FounderStory() {
             className="text-accent hover:opacity-80 transition-opacity"
           >
             Follow along on Instagram →
+          </a>
+        </p>
+
+        <p className="text-[0.875rem]">
+          <a
+            href="https://buymeacoffee.com/themichaelleonard"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-foreground-muted/70 hover:text-foreground-muted transition-colors"
+          >
+            <Coffee size={14} aria-hidden />
+            Support AniPace on Buy Me a Coffee
           </a>
         </p>
       </div>

@@ -1,8 +1,4 @@
-/*
- * SiteFooter
- *
- * PRD: "Minimal. Instagram link, credit line. Muted gray text."
- */
+import { Coffee } from "lucide-react";
 
 export default function SiteFooter() {
   return (
@@ -14,7 +10,6 @@ export default function SiteFooter() {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors w-fit"
         >
-          {/* Minimal Instagram icon (SVG inline — no extra dep needed) */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="14"
@@ -34,7 +29,18 @@ export default function SiteFooter() {
           Follow on Instagram
         </a>
 
+        <a
+          href="https://buymeacoffee.com/themichaelleonard"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors w-fit"
+        >
+          <Coffee size={14} aria-hidden />
+          Support AniPace
+        </a>
+
         <p>Built for people who love anime but never have time to watch it.</p>
+        <p className="text-foreground-muted/40">© 2025 AniPace</p>
       </div>
     </footer>
   );
