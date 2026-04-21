@@ -325,22 +325,26 @@ Return ONLY this valid JSON object — no markdown fences, no explanation, nothi
 
   const MODEL_CHAIN = [
     "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-1.5-flash-8b",
+    "gemini-3-flash-preview",
+    "gemini-2.5-flash-lite",
+    "gemini-flash-latest",
   ] as const;
 
   /**
    * Returns true if the error looks like a transient overload that is worth
-   * retrying with a different model.
+   * retrying with a different model, or if the model itself is not found (404).
    */
   function isRetryable(err: unknown): boolean {
     const msg = err instanceof Error ? err.message : String(err);
+    const msgLower = msg.toLowerCase();
     return (
       msg.includes("503") ||
-      msg.toLowerCase().includes("unavailable") ||
-      msg.toLowerCase().includes("high demand") ||
-      msg.toLowerCase().includes("overloaded")
+      msg.includes("404") ||
+      msgLower.includes("unavailable") ||
+      msgLower.includes("high demand") ||
+      msgLower.includes("overloaded") ||
+      msgLower.includes("not_found") ||
+      msgLower.includes("not found")
     );
   }
 
