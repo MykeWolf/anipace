@@ -27,7 +27,7 @@ jest.mock("@react-pdf/renderer", () => ({
   ),
 }));
 
-jest.mock("next/dynamic", () => (importFn: () => Promise<{ default: unknown }>) => {
+jest.mock("next/dynamic", () => (_importFn: () => Promise<{ default: unknown }>) => {
   // Resolve the dynamic import synchronously in tests
   // PDFDownloadLink mock is already registered above
   // eslint-disable-next-line @typescript-eslint/no-require-imports

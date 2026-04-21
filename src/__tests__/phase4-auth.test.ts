@@ -39,13 +39,16 @@ const mockPlan: SavedPlan = {
   },
 };
 
+type Resolver = Parameters<Promise<unknown>["then"]>[0];
+type Rejecter = Parameters<Promise<unknown>["then"]>[1];
+
 function makeChain(data: unknown = null, error: unknown = null) {
-  const chain: Record<string, unknown> & { then: Function } = {
+  const chain: Record<string, unknown> & { then: (resolve: Resolver, reject?: Rejecter) => Promise<unknown> } = {
     select: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),
     delete: jest.fn().mockReturnThis(),
     upsert: jest.fn().mockResolvedValue({ error }),
-    then(resolve: Function, reject: Function) {
+    then(resolve: Resolver, reject?: Rejecter) {
       return Promise.resolve({ data, error }).then(
         resolve as Parameters<Promise<unknown>["then"]>[0],
         reject as Parameters<Promise<unknown>["then"]>[1]
