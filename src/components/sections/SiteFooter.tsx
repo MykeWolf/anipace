@@ -1,4 +1,5 @@
 import { Coffee } from "lucide-react";
+import Link from "next/link";
 
 export default function SiteFooter() {
   return (
@@ -40,8 +41,19 @@ export default function SiteFooter() {
         </a>
 
         <p>Built for people who love anime but never have time to watch it.</p>
-        <p className="text-foreground-muted/40">© 2025 AniPace</p>
+
+        <div className="flex items-center gap-3 text-foreground-muted/40">
+          <p>© 2026 AniPace</p>
+          <span aria-hidden>·</span>
+          <Link
+            href="/privacy"
+            className="hover:text-foreground-muted transition-colors"
+          >
+            Privacy Policy
+          </Link>
+        </div>
       </div>
     </footer>
   );
 }
+
